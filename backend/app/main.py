@@ -9,10 +9,24 @@ from typing import Optional, List
 import os, httpx, json
 from supabase import create_client, Client
 from datetime import datetime, date
-import weasyprint
 from jinja2 import Template
 import resend
 from functools import wraps
+
+
+def import_weasyprint():
+    try:
+        import weasyprint
+        return weasyprint
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "WeasyPrint native dependencies are missing. "
+                "Deploy using Docker or install GTK/Cairo/Pango native libs. "
+                f"Original error: {e}"
+            ),
+        )
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -259,6 +273,7 @@ async def generate_invoice_pdf(request: Request, req: GeneratePDFRequest):
     try:
         template = Template(INVOICE_HTML)
         html = template.render(**req.dict())
+        weasyprint = import_weasyprint()
         pdf_bytes = weasyprint.HTML(string=html).write_pdf()
 
         # Upload to Supabase Storage
