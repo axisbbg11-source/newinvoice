@@ -1,0 +1,112 @@
+{
+  "name": "BizDesk Invoice Follow-up",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "hours", "hoursInterval": 24}]
+        }
+      },
+      "id": "trigger",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://wgqsvqqubablmqdyomtv.supabase.co/rest/v1/invoices?select=*,clients(name,email,phone,whatsapp_enabled)&status=eq.overdue",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "REPLACE_WITH_YOUR_SERVICE_KEY"},
+            {"name": "Authorization", "value": "Bearer REPLACE_WITH_YOUR_SERVICE_KEY"}
+          ]
+        }
+      },
+      "id": "getInvoices",
+      "name": "Get Overdue Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "split",
+      "name": "Split Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inv = $input.first().json;\nconst due = new Date(inv.due_date);\nconst today = new Date();\nconst days = Math.floor((today - due) / (1000*60*60*24));\nreturn [{json: {...inv, days_overdue: days}}];"
+      },
+      "id": "calc",
+      "name": "Calculate Days",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_WITH_BACKEND_URL/api/v1/invoices/followup-email",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "invoice_id", "value": "={{$json.id}}"},
+            {"name": "client_email", "value": "={{$json.clients.email}}"},
+            {"name": "client_name", "value": "={{$json.clients.name}}"},
+            {"name": "business_name", "value": "Your Business"},
+            {"name": "amount", "value": "={{$json.total}}"},
+            {"name": "due_date", "value": "={{$json.due_date}}"},
+            {"name": "days_overdue", "value": "={{$json.days_overdue}}"}
+          ]
+        }
+      },
+      "id": "generateEmail",
+      "name": "Generate Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "sendBody": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Bearer REPLACE_WITH_RESEND_KEY"}
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {"name": "from", "value": "onboarding@resend.dev"},
+            {"name": "to", "value": "={{$json.client_email}}"},
+            {"name": "subject", "value": "={{$json.subject}}"},
+            {"name": "text", "value": "={{$json.body}}"}
+          ]
+        }
+      },
+      "id": "sendEmail",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {"main": [[{"node": "Get Overdue Invoices", "type": "main", "index": 0}]]},
+    "Get Overdue Invoices": {"main": [[{"node": "Split Batches", "type": "main", "index": 0}]]},
+    "Split Batches": {"main": [[{"node": "Calculate Days", "type": "main", "index": 0}]]},
+    "Calculate Days": {"main": [[{"node": "Generate Email", "type": "main", "index": 0}]]},
+    "Generate Email": {"main": [[{"node": "Send Email", "type": "main", "index": 0}]]}
+  }
+}

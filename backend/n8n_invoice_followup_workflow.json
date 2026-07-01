@@ -1,0 +1,128 @@
+{
+  "name": "BizDesk — Invoice Follow-up",
+  "description": "Import this in n8n. Runs daily and sends follow-up emails for overdue invoices.",
+  "nodes": [
+    {
+      "name": "Every day at 9am",
+      "type": "n8n-nodes-base.cron",
+      "position": [250, 300],
+      "parameters": { "triggerTimes": { "item": [{ "mode": "everyDay", "hour": 9 }] } }
+    },
+    {
+      "name": "Get overdue invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300],
+      "parameters": {
+        "url": "https://wgqsvqqubablmqdyomtv.supabase.co/rest/v1/invoices?select=*,clients(name,email,phone,whatsapp_enabled)&status=eq.overdue",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "For each invoice",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [650, 300],
+      "parameters": { "batchSize": 1 }
+    },
+    {
+      "name": "Calculate days overdue",
+      "type": "n8n-nodes-base.code",
+      "position": [850, 300],
+      "parameters": {
+        "jsCode": "const inv = $input.first().json;\nconst due = new Date(inv.due_date);\nconst today = new Date();\nconst days = Math.floor((today - due) / (1000*60*60*24));\nreturn [{ json: { ...inv, days_overdue: days } }];"
+      }
+    },
+    {
+      "name": "Generate follow-up email (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 300],
+      "parameters": {
+        "url": "https://newinvoice.railway.internal/api/v1/invoices/followup-email",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "invoice_id", "value": "={{ $json.id }}" },
+            { "name": "client_email", "value": "={{ $json.clients.email }}" },
+            { "name": "client_name", "value": "={{ $json.clients.name }}" },
+            { "name": "business_name", "value": "BizDesk User" },
+            { "name": "amount", "value": "={{ $json.total }}" },
+            { "name": "due_date", "value": "={{ $json.due_date }}" },
+            { "name": "days_overdue", "value": "={{ $json.days_overdue }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Send email via Resend",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1250, 300],
+      "parameters": {
+        "url": "https://api.resend.com/emails",
+        "method": "POST",
+        "sendHeaders": true,
+        "sendBody": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer={{ $env.RESEND_API_KEY }}" }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            { "name": "from", "value": "billing@yourdomain.com" },
+            { "name": "to", "value": "={{ $json.client_email }}" },
+            { "name": "subject", "value": "={{ $json.subject }}" },
+            { "name": "text", "value": "={{ $json.body }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Log followup in Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1450, 300],
+      "parameters": {
+        "url": "https://wgqsvqqubablmqdyomtv.supabase.co/rest/v1/followup_logs",
+        "method": "POST",
+        "sendHeaders": true,
+        "sendBody": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            { "name": "invoice_id", "value": "={{ $json.invoice_id }}" },
+            { "name": "day_number", "value": "={{ $json.days_overdue }}" },
+            { "name": "channel", "value": "email" },
+            { "name": "status", "value": "sent" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every day at 9am": { "main": [[{ "node": "Get overdue invoices", "type": "main", "index": 0 }]] },
+    "Get overdue invoices": { "main": [[{ "node": "For each invoice", "type": "main", "index": 0 }]] },
+    "For each invoice": { "main": [[{ "node": "Calculate days overdue", "type": "main", "index": 0 }]] },
+    "Calculate days overdue": { "main": [[{ "node": "Generate follow-up email (Groq)", "type": "main", "index": 0 }]] },
+    "Generate follow-up email (Groq)": { "main": [[{ "node": "Send email via Resend", "type": "main", "index": 0 }]] },
+    "Send email via Resend": { "main": [[{ "node": "Log followup in Supabase", "type": "main", "index": 0 }]] }
+  }
+}
