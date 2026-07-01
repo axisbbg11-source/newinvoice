@@ -16,13 +16,13 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://wgqsvqqubablmqdyomtv.supabase.co/rest/v1/invoices?select=*,clients(name,email,phone,whatsapp_enabled)&status=eq.overdue",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/invoices?select=*,clients(name,email,phone,whatsapp_enabled)&status=eq.overdue",
         "authentication": "genericCredentialType",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {"name": "apikey", "value": "REPLACE_WITH_YOUR_SERVICE_KEY"},
-            {"name": "Authorization", "value": "Bearer REPLACE_WITH_YOUR_SERVICE_KEY"}
+            {"name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}"},
+            {"name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_KEY }}"}
           ]
         }
       },
@@ -55,7 +55,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "REPLACE_WITH_BACKEND_URL/api/v1/invoices/followup-email",
+        "url": "={{ $env.BACKEND_URL }}/api/v1/invoices/followup-email",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -83,12 +83,12 @@
         "sendBody": true,
         "headerParameters": {
           "parameters": [
-            {"name": "Authorization", "value": "Bearer REPLACE_WITH_RESEND_KEY"}
+            {"name": "Authorization", "value": "Bearer={{ $env.RESEND_API_KEY }}"}
           ]
         },
         "bodyParameters": {
           "parameters": [
-            {"name": "from", "value": "onboarding@resend.dev"},
+            {"name": "from", "value": "={{ $env.FROM_EMAIL }}"},
             {"name": "to", "value": "={{$json.client_email}}"},
             {"name": "subject", "value": "={{$json.subject}}"},
             {"name": "text", "value": "={{$json.body}}"}

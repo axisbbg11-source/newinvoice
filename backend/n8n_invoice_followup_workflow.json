@@ -13,7 +13,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "position": [450, 300],
       "parameters": {
-        "url": "https://wgqsvqqubablmqdyomtv.supabase.co/rest/v1/invoices?select=*,clients(name,email,phone,whatsapp_enabled)&status=eq.overdue",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/invoices?select=*,clients(name,email,phone,whatsapp_enabled)&status=eq.overdue",
         "method": "GET",
         "authentication": "genericCredentialType",
         "sendHeaders": true,
@@ -50,7 +50,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "position": [1050, 300],
       "parameters": {
-        "url": "https://newinvoice.railway.internal/api/v1/invoices/followup-email",
+        "url": "={{ $env.BACKEND_URL }}/api/v1/invoices/followup-email",
         "method": "POST",
         "sendBody": true,
         "bodyParameters": {
@@ -82,7 +82,7 @@
         },
         "bodyParameters": {
           "parameters": [
-            { "name": "from", "value": "billing@yourdomain.com" },
+            { "name": "from", "value": "={{ $env.FROM_EMAIL }}" },
             { "name": "to", "value": "={{ $json.client_email }}" },
             { "name": "subject", "value": "={{ $json.subject }}" },
             { "name": "text", "value": "={{ $json.body }}" }
@@ -95,7 +95,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "position": [1450, 300],
       "parameters": {
-        "url": "https://wgqsvqqubablmqdyomtv.supabase.co/rest/v1/followup_logs",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/followup_logs",
         "method": "POST",
         "sendHeaders": true,
         "sendBody": true,

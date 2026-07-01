@@ -4,14 +4,54 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, field_validator
 from typing import Optional, List
-import os, httpx, json
+import os, re, json, logging, httpx
 from supabase import create_client, Client
 from datetime import datetime, date
 from jinja2 import Template
 import resend
 from functools import wraps
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Security: HTML sanitization for XSS prevention
+def sanitize_html(text: str) -> str:
+    """Sanitize user input to prevent XSS in HTML context"""
+    if not text:
+        return text
+    # Escape HTML entities
+    text = text.replace('&', '&amp;')
+    text = text.replace('<', '&lt;')
+    text = text.replace('>', '&gt;')
+    text = text.replace('"', '&quot;')
+    text = text.replace("'", '&#x27;')
+    return text
+
+def sanitize_for_prompt(text: str) -> str:
+    """Sanitize input for AI prompts to prevent prompt injection"""
+    if not text:
+        return text
+    # Remove control characters
+    text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
+    # Remove potential injection patterns
+    text = re.sub(r'(?i)(system|assistant|human):', '', text)
+    return text.strip()
+
+def validate_phone(phone: str) -> str:
+    """Validate and clean phone number"""
+    if not phone:
+        return ""
+    phone = ''.join(c for c in phone if c.isdigit())
+    if len(phone) < 10 or len(phone) > 15:
+        raise ValueError("Invalid phone number")
+    if not phone.startswith('91'):
+        phone = '91' + phone
+    if not re.match(r'^91[1-9]\d{9,12}$', phone):
+        raise ValueError("Invalid phone format")
+    return phone
 
 
 def import_weasyprint():
@@ -28,52 +68,112 @@ def import_weasyprint():
             ),
         )
 
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# ── Authentication ───────────────────────────────────────────────────
+security = HTTPBearer(auto_error=False)
+
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Verify Supabase JWT token and return user info"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated", headers={"WWW-Authenticate": "Bearer"})
+
+    try:
+        supabase = get_supabase()
+        # Verify the token with Supabase
+        user_response = supabase.auth.get_user(credentials.credentials)
+        if not user_response or not user_response.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        # Get user from users table
+        user_data = supabase.table("users").select("*").eq("id", user_response.user.id).execute()
+        if not user_data.data:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        return user_data.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Auth error: {str(e)}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
+
+async def get_optional_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
+    """Optional auth - returns user if valid token, None otherwise"""
+    if not credentials:
+        return None
+    try:
+        return await get_current_user(request, credentials)
+    except Exception:
+        return None
+
+# Rate limiter - use IP only for better stability
+def get_rate_limit_key(request: Request) -> str:
+    """Use IP address for rate limiting"""
+    return get_remote_address(request)
+
+limiter = Limiter(key_func=get_rate_limit_key)
 app = FastAPI(title="BizDesk API", version="1.0.0")
 app.state.limiter = limiter
 
 def rate_limit(max_per_minute: int = 60):
-    """Rate limiting decorator"""
+    """Rate limiting decorator - now actually functional"""
     def decorator(func):
-        @wraps(func)
-        async def wrapper(request: Request, *args, **kwargs):
-            return await func(*args, **kwargs)
-        return wrapper
+        return limiter.limit(f"{max_per_minute}/minute")(func)
     return decorator
 
 # Handle rate limit errors
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    return {"error": "Rate limit exceeded", "detail": "Please try again later"}
+    raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# CORS - FIXED: Specify explicit origins instead of wildcard
+# In production, replace with your actual frontend domains
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,https://bizdesk.app").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+)
 
 # ── Supabase client ──────────────────────────────
 def get_supabase() -> Client:
-    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
+
+    if not supabase_url:
+        raise HTTPException(status_code=500, detail="SUPABASE_URL not configured")
+    if not supabase_key:
+        raise HTTPException(status_code=500, detail="SUPABASE_SERVICE_KEY not configured")
+
+    return create_client(supabase_url, supabase_key)
 
 # ── Audit Logging ─────────────────────────────────
-def log_audit(supabase: Client, user_id: str, action: str, table_name: str, record_id: str = None, details: dict = None):
+def log_audit(request: Request, supabase: Client, user_id: str, action: str, table_name: str, record_id: str = None, details: dict = None):
     """Log sensitive actions for security auditing"""
     try:
+        # Get real IP from request
+        ip_address = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
         supabase.table("audit_logs").insert({
             "user_id": user_id,
             "action": action,
             "table_name": table_name,
             "record_id": record_id,
             "details": details or {},
-            "ip_address": os.environ.get("REMOTE_ADDR", "unknown")
+            "ip_address": ip_address
         })
     except Exception:
         pass  # Don't fail if audit logging fails
 
 # ── Groq AI helper ─────────────────────────────
 async def groq_complete(prompt: str, system: str = "") -> str:
+    groq_key = os.environ.get("GROQ_API_KEY")
+    if not groq_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
+
     async with httpx.AsyncClient() as client:
         res = await client.post(
             "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
+            headers={"Authorization": f"Bearer {groq_key}"},
             json={
                 "model": "llama-3.3-70b-versatile",
                 "max_tokens": 800,
@@ -84,7 +184,14 @@ async def groq_complete(prompt: str, system: str = "") -> str:
             },
             timeout=30
         )
+        if res.status_code != 200:
+            logger.error(f"Groq API error: {res.text}")
+            raise HTTPException(status_code=503, detail="AI service temporarily unavailable")
+
         data = res.json()
+        if not data.get("choices") or not data["choices"]:
+            raise HTTPException(status_code=503, detail="Invalid AI response")
+
         return data["choices"][0]["message"]["content"]
 
 # ── PDF Generator ──────────────────────────────
@@ -160,7 +267,8 @@ class InvoiceItem(BaseModel):
     quantity: int
     price: float
 
-    @validator('quantity')
+    @field_validator('quantity')
+    @classmethod
     def validate_quantity(cls, v):
         if v < 1:
             raise ValueError('Quantity must be at least 1')
@@ -168,7 +276,8 @@ class InvoiceItem(BaseModel):
             raise ValueError('Quantity too large')
         return v
 
-    @validator('price')
+    @field_validator('price')
+    @classmethod
     def validate_price(cls, v):
         if v < 0:
             raise ValueError('Price cannot be negative')
@@ -189,13 +298,15 @@ class GeneratePDFRequest(BaseModel):
     total: float
     notes: Optional[str]
 
-    @validator('invoice_id')
+    @field_validator('invoice_id')
+    @classmethod
     def validate_uuid(cls, v):
         if len(v) < 10 or len(v) > 100:
             raise ValueError('Invalid invoice ID')
         return v
 
-    @validator('total')
+    @field_validator('total')
+    @classmethod
     def validate_total(cls, v):
         if v < 0:
             raise ValueError('Total cannot be negative')
@@ -266,18 +377,29 @@ def root():
 def health():
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
-# Generate invoice PDF (rate limited: 10 requests/minute)
+# Generate invoice PDF (rate limited: 10 requests/minute) - PROTECTED
 @app.post("/api/v1/invoices/generate-pdf")
 @limiter.limit("10/minute")
-async def generate_invoice_pdf(request: Request, req: GeneratePDFRequest):
+async def generate_invoice_pdf(request: Request, req: GeneratePDFRequest, current_user: dict = Depends(get_current_user)):
     try:
+        supabase = get_supabase()
+
+        # FIRST: Verify ownership before ANY operation (IDOR fix)
+        invoice = supabase.table("invoices").select("user_id").eq("id", req.invoice_id).execute()
+        if not invoice.data:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+
+        # Verify user owns this invoice
+        if invoice.data[0]["user_id"] != current_user.get("id"):
+            raise HTTPException(status_code=403, detail="Not authorized to access this invoice")
+
+        # Generate PDF
         template = Template(INVOICE_HTML)
         html = template.render(**req.dict())
         weasyprint = import_weasyprint()
         pdf_bytes = weasyprint.HTML(string=html).write_pdf()
 
         # Upload to Supabase Storage
-        supabase = get_supabase()
         path = f"invoices/{req.invoice_id}.pdf"
         supabase.storage.from_("bizdesk-files").upload(path, pdf_bytes, {"content-type": "application/pdf", "upsert": "true"})
         url = supabase.storage.from_("bizdesk-files").get_public_url(path)
@@ -286,21 +408,29 @@ async def generate_invoice_pdf(request: Request, req: GeneratePDFRequest):
         supabase.table("invoices").update({"pdf_url": url}).eq("id", req.invoice_id).execute()
 
         return {"pdf_url": url}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"PDF generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")
 
 # Generate AI client report
 @app.post("/api/v1/reports/generate")
 async def generate_report(req: GenerateReportRequest):
-    logs_text = "\n".join([f"- {log}" for log in req.work_logs])
+    # Sanitize user inputs to prevent prompt injection
+    safe_client_name = sanitize_for_prompt(req.client_name)
+    safe_business_name = sanitize_for_prompt(req.business_name)
+    safe_logs = [sanitize_for_prompt(log) for log in req.work_logs]
+
+    logs_text = "\n".join([f"- {log}" for log in safe_logs])
     prompt = f"""
-Generate a professional weekly client report for {req.client_name} from {req.business_name}.
+Generate a professional weekly client report for {safe_client_name} from {safe_business_name}.
 Period: {req.period_start} to {req.period_end}
 
 Work completed:
 {logs_text}
 
-Write a polished, professional 3-4 paragraph report. Be specific and positive. 
+Write a polished, professional 3-4 paragraph report. Be specific and positive.
 End with a brief note about what is planned next week.
 Do NOT use markdown or bullet points. Write in flowing paragraphs.
 """
@@ -310,6 +440,10 @@ Do NOT use markdown or bullet points. Write in flowing paragraphs.
 # AI follow-up email
 @app.post("/api/v1/invoices/followup-email")
 async def generate_followup_email(req: FollowupRequest):
+    # Sanitize inputs
+    safe_business_name = sanitize_for_prompt(req.business_name)
+    safe_client_name = sanitize_for_prompt(req.client_name)
+
     if req.days_overdue <= 3:
         tone = "gentle and friendly"
         subject_hint = "friendly reminder"
@@ -322,8 +456,8 @@ async def generate_followup_email(req: FollowupRequest):
 
     prompt = f"""
 Write a {tone} payment reminder email.
-From: {req.business_name}
-To: {req.client_name}
+From: {safe_business_name}
+To: {safe_client_name}
 Invoice amount: ₹{req.amount}
 Due date: {req.due_date}
 Days overdue: {req.days_overdue}
@@ -344,9 +478,15 @@ async def generate_contract(
     duration: str,
     amount: Optional[str] = None
 ):
+    # Sanitize inputs
+    safe_contract_type = sanitize_for_prompt(contract_type)
+    safe_party_a = sanitize_for_prompt(party_a)
+    safe_party_b = sanitize_for_prompt(party_b)
+    safe_details = sanitize_for_prompt(details)
+
     prompt = f"""
-Generate a professional {contract_type} between {party_a} (Service Provider) and {party_b} (Client).
-Details: {details}
+Generate a professional {safe_contract_type} between {safe_party_a} (Service Provider) and {safe_party_b} (Client).
+Details: {safe_details}
 Duration: {duration}
 {"Amount: " + amount if amount else ""}
 
@@ -376,15 +516,21 @@ async def send_email(request: Request, req: SendEmailRequest):
         from_email = req.from_email or os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
         from_name = req.from_name or "BizDesk"
 
+        # Sanitize user input to prevent XSS
+        safe_to_name = sanitize_html(req.to_name)
+        safe_body = sanitize_html(req.body)
+        safe_subject = sanitize_html(req.subject)
+
         r = resend.Emails.send({
             "from": f"{from_name} <{from_email}>",
             "to": req.to_email,
-            "subject": req.subject,
-            "html": f"<p>Dear {req.to_name},</p><p>{req.body}</p><p>Best regards,<br/>{req.business_name or 'BizDesk'}</p>"
+            "subject": safe_subject,
+            "html": f"<p>Dear {safe_to_name},</p><p>{safe_body}</p><p>Best regards,<br/>{sanitize_html(req.business_name or 'BizDesk')}</p>"
         })
         return {"success": True, "message": "Email sent"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"Email send error: {str(e)}")
+        return {"success": False, "error": "Failed to send email"}
 
 # Send report to client
 @app.post("/api/v1/reports/send")
@@ -395,10 +541,11 @@ async def send_report(req: SendReportRequest):
             return {"success": False, "error": "RESEND_API_KEY not configured"}
 
         from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-        business_name = req.business_name or "BizDesk"
+        business_name = sanitize_html(req.business_name or "BizDesk")
 
-        # Convert content to HTML (simple conversion)
-        content_html = req.content.replace('\n', '<br/>')
+        # Sanitize content to prevent XSS - convert newlines but escape HTML
+        safe_content = sanitize_html(req.content).replace('\n', '<br/>')
+        safe_client_name = sanitize_html(req.client_name)
 
         r = resend.Emails.send({
             "from": f"{business_name} <{from_email}>",
@@ -407,9 +554,9 @@ async def send_report(req: SendReportRequest):
             "html": f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #1A73E8;">Work Report</h2>
-                <p>Dear {req.client_name},</p>
+                <p>Dear {safe_client_name},</p>
                 <div style="background: #F8F9FA; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    {content_html}
+                    {safe_content}
                 </div>
                 <p style="color: #666; font-size: 12px;">Generated by BizDesk</p>
             </div>
@@ -422,7 +569,8 @@ async def send_report(req: SendReportRequest):
 
         return {"success": True, "message": "Report sent successfully"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"Report send error: {str(e)}")
+        return {"success": False, "error": "Failed to send report"}
 
 # ── Auto-Send Invoice Email (Payment Reminder) ─────────────────────────────
 @app.post("/api/v1/invoices/send-reminder")
@@ -433,7 +581,8 @@ async def send_invoice_reminder(req: InvoiceEmailRequest):
             return {"success": False, "error": "RESEND_API_KEY not configured"}
 
         from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-        business_name = req.business_name or "BizDesk"
+        business_name = sanitize_html(req.business_name or "BizDesk")
+        client_name = sanitize_html(req.client_name)
 
         # Determine tone based on status
         if req.status == "overdue":
@@ -443,11 +592,15 @@ async def send_invoice_reminder(req: InvoiceEmailRequest):
             tone = "friendly reminder"
             subject = f"Payment Reminder - Invoice #{req.invoice_number}"
 
+        # Sanitize inputs for AI prompt
+        safe_business = sanitize_for_prompt(req.business_name or "BizDesk")
+        safe_client = sanitize_for_prompt(req.client_name)
+
         # Generate email body using AI or template
         prompt = f"""
 Write a {tone} payment reminder email for a business.
-Business: {business_name}
-Client: {req.client_name}
+Business: {safe_business}
+Client: {safe_client}
 Invoice: #{req.invoice_number}
 Amount: ₹{req.amount}
 Due Date: {req.due_date}
@@ -458,10 +611,10 @@ End with a polite request for payment.
 """
         try:
             body = await groq_complete(prompt, "You are a professional business writer.")
-        except:
+        except Exception:
             # Fallback template if AI fails
             if req.status == "overdue":
-                body = f"""Dear {req.client_name},
+                body = f"""Dear {client_name},
 
 This is a friendly reminder that Invoice #{req.invoice_number} for ₹{req.amount} was due on {req.due_date}.
 
@@ -472,7 +625,7 @@ Thank you for your business!
 Best regards,
 {business_name}"""
             else:
-                body = f"""Dear {req.client_name},
+                body = f"""Dear {client_name},
 
 I hope this email finds you well!
 
@@ -494,7 +647,8 @@ Best regards,
 
         return {"success": True, "message": "Payment reminder sent!"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"Reminder email error: {str(e)}")
+        return {"success": False, "error": "Failed to send reminder"}
 
 # ── Auto-Send Payment Received Thank You ────────────────────────────────────
 @app.post("/api/v1/invoices/send-thankyou")
@@ -505,12 +659,17 @@ async def send_payment_thankyou(req: PaymentReceivedRequest):
             return {"success": False, "error": "RESEND_API_KEY not configured"}
 
         from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-        business_name = req.business_name or "BizDesk"
+        business_name = sanitize_html(req.business_name or "BizDesk")
+        client_name = sanitize_html(req.client_name)
+
+        # Sanitize for AI prompt
+        safe_business = sanitize_for_prompt(req.business_name or "BizDesk")
+        safe_client = sanitize_for_prompt(req.client_name)
 
         prompt = f"""
 Write a short, warm thank you email for receiving payment.
-Business: {business_name}
-Client: {req.client_name}
+Business: {safe_business}
+Client: {safe_client}
 Invoice: #{req.invoice_number}
 Amount: ₹{req.amount}
 
@@ -519,7 +678,7 @@ Keep it warm, short (under 80 words), and express gratitude.
         try:
             body = await groq_complete(prompt, "You are a friendly business owner.")
         except:
-            body = f"""Dear {req.client_name},
+            body = f"""Dear {client_name},
 
 Thank you so much for your payment of ₹{req.amount} for Invoice #{req.invoice_number}!
 
@@ -539,7 +698,8 @@ Best regards,
 
         return {"success": True, "message": "Thank you email sent!"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"Thankyou email error: {str(e)}")
+        return {"success": False, "error": "Failed to send thank you email"}
 
 # ── Auto-Send Invoice Created Email ────────────────────────────────────────
 @app.post("/api/v1/invoices/send-invoice")
@@ -550,30 +710,37 @@ async def send_invoice_created(req: InvoiceEmailRequest):
             return {"success": False, "error": "RESEND_API_KEY not configured"}
 
         from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-        business_name = req.business_name or "BizDesk"
+        business_name = sanitize_html(req.business_name or "BizDesk")
+        client_name = sanitize_html(req.client_name)
+        notes = sanitize_html(req.notes or 'Please process the payment at your earliest convenience.')
+
+        # Sanitize for AI prompt
+        safe_business = sanitize_for_prompt(req.business_name or "BizDesk")
+        safe_client = sanitize_for_prompt(req.client_name)
+        safe_notes = sanitize_for_prompt(req.notes or 'none')
 
         prompt = f"""
 Write a professional invoice email to send to a client.
-Business: {business_name}
-Client: {req.client_name}
+Business: {safe_business}
+Client: {safe_client}
 Invoice: #{req.invoice_number}
 Amount: ₹{req.amount}
 Due Date: {req.due_date}
 Invoice Date: {req.invoice_date}
 
-Include: invoice details, payment due date, payment methods (if mentioned in notes: {req.notes or 'none'}).
+Include: invoice details, payment due date, payment methods (if mentioned in notes: {safe_notes}).
 Keep it professional but friendly. Under 100 words.
 """
         try:
             body = await groq_complete(prompt, "You are a professional business owner.")
         except:
-            body = f"""Dear {req.client_name},
+            body = f"""Dear {client_name},
 
 Please find attached Invoice #{req.invoice_number} for ₹{req.amount}.
 
 Due Date: {req.due_date}
 
-{req.notes or 'Please process the payment at your earliest convenience.'}
+{notes}
 
 Thank you for your business!
 
@@ -589,12 +756,33 @@ Best regards,
 
         return {"success": True, "message": "Invoice sent!"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"Invoice email error: {str(e)}")
+        return {"success": False, "error": "Failed to send invoice"}
 
 # ── WhatsApp Message Models ─────────────────────────────────────────────
 class WhatsAppRequest(BaseModel):
     phone: str
     message: str
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v):
+        if not v:
+            raise ValueError("Phone number is required")
+        # Remove non-digit characters for validation
+        clean = ''.join(c for c in v if c.isdigit())
+        if len(clean) < 10:
+            raise ValueError("Invalid phone number")
+        return v
+
+    @field_validator('message')
+    @classmethod
+    def validate_message(cls, v):
+        if not v:
+            raise ValueError("Message is required")
+        if len(v) > 4096:
+            raise ValueError("Message too long (max 4096 characters)")
+        return v
 
 # ── WhatsApp Reminder (using Twilio or similar) ─────────────────────────
 @app.post("/api/v1/whatsapp/send")
@@ -620,38 +808,45 @@ async def send_whatsapp(req: WhatsAppRequest):
             )
             return {"success": True, "message_id": message.sid}
         else:
-            # Return the message for manual sending (demo mode)
+            # Return the message for manual sending (demo mode) - NOT actually sent
             return {
-                "success": True,
+                "success": False,
                 "demo": True,
-                "message": "WhatsApp not configured. Use the message below:",
+                "error": "WhatsApp not configured (demo mode)",
+                "message": "Configure TWILIO_WHATSAPP_SID and TWILIO_WHATSAPP_TOKEN to send",
                 "whatsapp_message": req.message,
                 "phone": req.phone
             }
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"WhatsApp error: {str(e)}")
+        return {"success": False, "error": "Failed to send WhatsApp message"}
 
 # ── Auto-Send Invoice via WhatsApp ───────────────────────────────────────
 @app.post("/api/v1/invoices/send-whatsapp")
 async def send_invoice_whatsapp(req: InvoiceEmailRequest):
-    phone = req.client_phone or ""
-    if not phone:
+    if not req.client_phone:
         return {"success": False, "error": "No phone number"}
 
-    # Clean phone number
-    phone = ''.join(c for c in phone if c.isdigit())
-    if not phone.startswith('91'):
-        phone = '91' + phone
+    # Validate phone number
+    try:
+        phone = validate_phone(req.client_phone)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
+
+    # Sanitize inputs
+    safe_client_name = sanitize_html(req.client_name)
+    safe_business_name = sanitize_html(req.business_name)
+    safe_notes = sanitize_html(req.notes or 'Please process the payment at your earliest convenience.')
 
     message = f"""
-Hi {req.client_name},
+Hi {safe_client_name},
 
-Please find your invoice #{req.invoice_number} from {req.business_name}.
+Please find your invoice #{req.invoice_number} from {safe_business_name}.
 
 Amount: ₹{req.amount}
 Due Date: {req.due_date}
 
-{req.notes or 'Please process the payment at your earliest convenience.'}
+{safe_notes}
 
 Thank you!
 """
@@ -684,9 +879,13 @@ Always respond in the same language the user writes in."""
     except Exception as e:
         return {"error": str(e)}
 
-# Dashboard summary
+# Dashboard summary - PROTECTED
 @app.get("/api/v1/dashboard/{user_id}")
-def get_dashboard(user_id: str):
+def get_dashboard(user_id: str, current_user: dict = Depends(get_current_user)):
+    # Only allow users to view their own dashboard
+    if current_user.get("id") != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this dashboard")
+
     supabase = get_supabase()
     from_date = date.today().replace(day=1).isoformat()
 

@@ -1,16 +1,16 @@
 class AppConstants {
   // Supabase — REPLACE WITH YOUR VALUES from Supabase Dashboard → Settings → API
-  static const supabaseUrl = 'https://wgqsvqqubablmqdyomtv.supabase.co';
-  static const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndncXN2cXF1YmFibG1xZHlvbXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTk5NjYsImV4cCI6MjA5ODI5NTk2Nn0.2tQgCtqnB91eacqyoCKrDzRCsTCHE_NPT2jptF02lWI';
+  // In production, use environment variables
+  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://wgqsvqqubablmqdyomtv.supabase.co');
+  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndncXN2cXF1YmFibG1xZHlvbXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTk5NjYsImV4cCI6MjA5ODI5NTk2Nn0.2tQgCtqnB91eacqyoCKrDzRCsTCHE_NPT2jptF02lWI');
 
-  // Test user ID (for development only)
-  static const testUserId = '00000000-0000-0000-0000-000000000001';
-
+  // NOTE: testUserId removed for security - use authenticated user only
   // Storage bucket name
   static const supabaseStorageBucket = 'bizdesk-files';
 
   // Backend API — all API keys are kept server-side only
-  static const apiBaseUrl = 'https://newinvoice.railway.internal';
+  // In production, use environment variables
+  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://newinvoice.railway.internal');
 
   // App info
   static const appName = 'BizDesk';

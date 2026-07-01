@@ -5,11 +5,14 @@ import '../../core/constants/app_constants.dart';
 
 final supabaseProvider = Provider<SupabaseClient>((ref) => Supabase.instance.client);
 
-// Get current user ID (falls back to test user for development)
+// Get current user ID - MUST be authenticated (no fallback)
 final currentUserIdProvider = Provider<String>((ref) {
   final supabase = ref.read(supabaseProvider);
   final user = supabase.auth.currentUser;
-  return user?.id ?? AppConstants.testUserId;
+  if (user == null) {
+    throw Exception('User not authenticated - please sign in');
+  }
+  return user.id;
 });
 
 final authStateProvider = StreamProvider<AuthState>((ref) {

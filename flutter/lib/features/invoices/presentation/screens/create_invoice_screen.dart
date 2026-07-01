@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/models.dart';
 import '../../../auth/auth_provider.dart';
@@ -36,7 +35,8 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
       final supabase = ref.read(supabaseProvider);
       final uid = ref.read(currentUserIdProvider);
 
-      if (uid.isEmpty || uid == AppConstants.testUserId) {
+      // Check if user is authenticated
+      if (uid.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please login to create invoices')),

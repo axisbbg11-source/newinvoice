@@ -1,1 +1,3 @@
-web: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+git add app/main.py requirements.txt Dockerfile .dockerignore
+git commit -m "Lazy-load WeasyPrint and add Docker native libs"
+git push origin mainweb: uvicorn app.main:app --host 0.0.0.0 --port $PORT
