@@ -1,4 +1,4 @@
-# BizDesk
+# BizDesk / newinvoice
 
 > Run your business from your pocket.
 
@@ -90,15 +90,13 @@ RESEND_API_KEY=your_resend_key
 - [x] AI assistant powered by Groq (free)
 - [x] Auto follow-up emails via n8n
 - [x] Supabase schema with RLS
-
-### 🔨 In progress (Week 2-3)
-- [ ] Clients management screen
-- [ ] Invoices list + detail screen
-- [ ] Expense tracker with photo
-- [ ] PDF invoice generation
-- [ ] Reports screen + AI generator
-- [ ] Contract builder
-- [ ] Mock payment screen
+- [x] Clients management screen
+- [x] Invoices list + detail screen
+- [x] Expense tracker
+- [x] PDF invoice generation
+- [x] Reports screen + AI generator
+- [x] Contract builder
+- [x] Mock payment screen
 
 ---
 
