@@ -54,14 +54,6 @@ def log_audit(supabase: Client, user_id: str, action: str, table_name: str, reco
     except Exception:
         pass  # Don't fail if audit logging fails
 
-app = FastAPI(title="BizDesk API", version="1.0.0")
-
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-
-# ── Supabase client ────────────────────────────
-def get_supabase() -> Client:
-    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
-
 # ── Groq AI helper ─────────────────────────────
 async def groq_complete(prompt: str, system: str = "") -> str:
     async with httpx.AsyncClient() as client:
