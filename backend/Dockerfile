@@ -26,11 +26,12 @@ RUN apt-get update \
         fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+COPY backend/requirements.txt ./requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install -r requirements.txt
 
-COPY . .
+# Copy only backend sources into the image to keep build context small
+COPY backend/. .
 
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
