@@ -530,6 +530,22 @@ class _MoreDrawerSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          // Logo
+          Image.asset(
+            'assets/images/logo.png',
+            width: 48,
+            height: 48,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'BizDesk',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
           // Subscription/Plan entry (always visible in More)
           userAsync.when(
             data: (u) => Container(

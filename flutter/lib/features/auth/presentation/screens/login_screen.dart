@@ -69,36 +69,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
 
-                // Logo mark (navy rounded square, teal bars) - placeholder for actual logo
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(16),
+                // Logo
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 80,
+                    height: 80,
                   ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            _bar(6, AppColors.accent),
-                            const SizedBox(width: 2),
-                            _bar(10, AppColors.accent),
-                            const SizedBox(width: 2),
-                            _bar(14, AppColors.accent),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Container(width: 26, height: 2, color: Colors.white),
-                      ],
+                ),
+                const SizedBox(height: 16),
+
+                // App name
+                Center(
+                  child: Text(
+                    'BizDesk',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
                 const SizedBox(height: 20),
 
                 // Wordmark
