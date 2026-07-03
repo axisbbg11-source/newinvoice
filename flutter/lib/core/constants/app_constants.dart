@@ -9,7 +9,7 @@ class AppConstants {
 
   // Backend API — use localhost for dev builds so the browser can resolve it.
   // Change this to your deployed backend URL for production via --dart-define.
-  static const defaultApiBaseUrl = 'http://127.0.0.1:8000';
+  static const defaultApiBaseUrl = 'https://newinvoice-production-4255.up.railway.app';
   static String get apiBaseUrl {
     const envUrl = String.fromEnvironment('API_BASE_URL');
     if (envUrl.isNotEmpty) return envUrl;
