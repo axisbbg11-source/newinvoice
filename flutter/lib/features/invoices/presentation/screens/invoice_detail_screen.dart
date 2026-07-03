@@ -77,27 +77,34 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            inv.invoiceNumber,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _statusColor(inv.status).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
+                          Expanded(
                             child: Text(
-                              _statusLabel(inv.status),
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _statusColor(inv.status)),
+                              inv.invoiceNumber,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _statusColor(inv.status).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: Text(
+                                _statusLabel(inv.status),
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _statusColor(inv.status)),
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'Client',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                       const SizedBox(height: 4),
                       GestureDetector(

@@ -234,19 +234,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _page = 0;
 
   final _pages = [
-    _OnboardPage(
+    const _OnboardPage(
       icon: Icons.receipt_long,
       title: 'Create invoices in 60 seconds',
       subtitle: 'Add client, items, amount — done. Share via WhatsApp or email instantly.',
       color: AppColors.primary,
     ),
-    _OnboardPage(
+    const _OnboardPage(
       icon: Icons.auto_awesome,
       title: 'AI chases payments for you',
       subtitle: 'Overdue invoice? AI automatically sends follow-up emails so you never have to ask awkwardly.',
       color: AppColors.accent,
     ),
-    _OnboardPage(
+    const _OnboardPage(
       icon: Icons.insights,
       title: 'Know your numbers always',
       subtitle: 'Money in, money out, who owes you — all on one screen. No accountant needed.',

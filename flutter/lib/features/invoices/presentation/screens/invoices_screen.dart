@@ -39,8 +39,8 @@ class InvoicesScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Page title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 52, 20, 16),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 52, 20, 16),
               child: Text('Invoices', style: AppTextStyles.pageTitle),
             ),
 
@@ -106,7 +106,7 @@ class InvoicesScreen extends ConsumerWidget {
                                   width: 80,
                                   height: 80,
                                   decoration: BoxDecoration(
-                                    color: AppColors.brandTint,
+                                    color: AppColors.brandLight,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Icon(Icons.receipt_long_outlined, size: 36, color: AppColors.brand),
@@ -114,7 +114,7 @@ class InvoicesScreen extends ConsumerWidget {
                                 const SizedBox(height: 20),
                                 Text(
                                   'No ${currentFilter == 'all' ? '' : currentFilter} invoices',
-                                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.text),
+                                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -143,7 +143,7 @@ class InvoicesScreen extends ConsumerWidget {
                           },
                         ),
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.rose))),
+                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.error))),
                 ),
               ),
             ),
@@ -176,12 +176,12 @@ class _FilterPill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.brand : AppColors.card,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? AppColors.brand : AppColors.line,
+            color: isSelected ? AppColors.brand : AppColors.border,
             width: 1,
           ),
         ),
@@ -191,9 +191,9 @@ class _FilterPill extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: isSelected ? Colors.white : AppColors.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
               ),
             ),
             if (count > 0) ...[

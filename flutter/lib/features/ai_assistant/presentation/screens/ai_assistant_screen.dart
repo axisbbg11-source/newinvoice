@@ -50,7 +50,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
         if (inv['status'] == 'overdue') overdueClients.add('${inv['clients']?['name'] ?? 'Unknown'} owes ₹${inv['total']}');
       }
     }
-    for (final e in expenses) totalExpenses += (e['amount'] as num).toDouble();
+    for (final e in expenses) {
+      totalExpenses += (e['amount'] as num).toDouble();
+    }
 
     return '''
 Business: ${user['business_name'] ?? user['name']}
@@ -103,12 +105,13 @@ This month:
 
   void _scrollDown() {
     Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollCtrl.hasClients)
+      if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
+      }
     });
   }
 
@@ -324,13 +327,13 @@ class _TypingBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border, width: 0.5),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             _Dot(delay: 0),
-            const SizedBox(width: 4),
+            SizedBox(width: 4),
             _Dot(delay: 200),
-            const SizedBox(width: 4),
+            SizedBox(width: 4),
             _Dot(delay: 400),
           ],
         ),

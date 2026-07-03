@@ -68,7 +68,7 @@ ${client.email != null ? 'Email: ${client.email}' : ''}
 The Service Provider agrees to provide services as discussed and agreed upon between both parties.
 
 2. PAYMENT
-The Client agrees to pay ${value} for the services rendered. Payment terms: As per invoice.
+The Client agrees to pay $value for the services rendered. Payment terms: As per invoice.
 
 3. TERM
 This agreement begins on ${fmt.format(_startDate)} ${_endDate != null ? 'and ends on ${fmt.format(_endDate!)}' : 'and continues until terminated by either party with 30 days notice'}.
@@ -104,7 +104,7 @@ Client: ${client.name}
 The Freelancer agrees to provide services as mutually agreed upon.
 
 2. COMPENSATION
-Total compensation: ${value}
+Total compensation: $value
 
 3. PAYMENT SCHEDULE
 Payment due within 30 days of invoice date.
@@ -292,7 +292,7 @@ Party 2: _______________________ Date: ____________
                   data: (list) => list.isEmpty
                       ? TextButton.icon(icon: const Icon(Icons.add), label: const Text('Add a client first'), onPressed: () => context.push('/clients/add'))
                       : DropdownButtonFormField<ClientModel>(
-                          value: _client,
+                          initialValue: _client,
                           hint: const Text('Select client'),
                           decoration: const InputDecoration(prefixIcon: Icon(Icons.person_outline, size: 18)),
                           items: list.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),

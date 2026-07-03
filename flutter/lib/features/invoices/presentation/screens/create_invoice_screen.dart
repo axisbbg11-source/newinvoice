@@ -122,7 +122,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                     ),
                   ),
                   // Title
-                  Text('New invoice', style: AppTextStyles.formTitle),
+                  const Text('New invoice', style: AppTextStyles.formTitle),
                   // Send button
                   GestureDetector(
                     onTap: _loading ? null : _submit,
@@ -149,7 +149,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Client field
-                    Text('Client', style: AppTextStyles.label),
+                    const Text('Client', style: AppTextStyles.label),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -163,7 +163,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                               onTap: () => context.push('/clients/add'),
                               child: Row(
                                 children: [
-                                  Icon(Icons.add, color: AppColors.muted, size: 15),
+                                  const Icon(Icons.add, color: AppColors.muted, size: 15),
                                   const SizedBox(width: 8),
                                   Text('Add a client first', style: AppTextStyles.body.copyWith(color: AppColors.muted)),
                                 ],
@@ -171,7 +171,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                             )
                           : Row(
                               children: [
-                                Icon(Icons.person_outline, color: AppColors.muted, size: 15),
+                                const Icon(Icons.person_outline, color: AppColors.muted, size: 15),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: DropdownButton<ClientModel>(
@@ -179,7 +179,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                                     hint: Text('Select client', style: AppTextStyles.body.copyWith(color: AppColors.muted)),
                                     isExpanded: true,
                                     underline: const SizedBox(),
-                                    icon: Icon(Icons.expand_more, color: AppColors.muted, size: 15),
+                                    icon: const Icon(Icons.expand_more, color: AppColors.muted, size: 15),
                                     items: _clients.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
                                     onChanged: (c) => setState(() => _selectedClient = c),
                                   ),
@@ -190,7 +190,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                     const SizedBox(height: 16),
 
                     // Dates field
-                    Text('Dates', style: AppTextStyles.label),
+                    const Text('Dates', style: AppTextStyles.label),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -214,7 +214,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                                   },
                                   child: Row(
                                     children: [
-                                      Text('📅 ', style: TextStyle(fontSize: 13)),
+                                      const Text('📅 ', style: TextStyle(fontSize: 13)),
                                       Text(DateFormat('d MMM yyyy').format(_invoiceDate), style: const TextStyle(fontSize: 13, color: AppColors.text)),
                                     ],
                                   ),
@@ -235,7 +235,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                                   },
                                   child: Row(
                                     children: [
-                                      Text('📅 ', style: TextStyle(fontSize: 13)),
+                                      const Text('📅 ', style: TextStyle(fontSize: 13)),
                                       Text(DateFormat('d MMM yyyy').format(_dueDate), style: const TextStyle(fontSize: 13, color: AppColors.text)),
                                     ],
                                   ),
@@ -249,7 +249,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                     const SizedBox(height: 16),
 
                     // Items field
-                    Text('Items', style: AppTextStyles.label),
+                    const Text('Items', style: AppTextStyles.label),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -307,7 +307,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                     const SizedBox(height: 16),
 
                     // Notes field
-                    Text('Notes (optional)', style: AppTextStyles.label),
+                    const Text('Notes (optional)', style: AppTextStyles.label),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -319,7 +319,7 @@ class _CreateInvoiceScreenState extends ConsumerState<CreateInvoiceScreen> {
                       child: TextField(
                         controller: _notesCtrl,
                         maxLines: 3,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: 'Payment terms, thank you note...',
                           hintStyle: TextStyle(color: AppColors.muted, fontSize: 13),
                           border: InputBorder.none,
@@ -368,7 +368,7 @@ class _ItemRow extends StatelessWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Item name',
-                hintStyle: TextStyle(fontSize: 13, color: AppColors.muted),
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.muted),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                 border: OutlineInputBorder(
@@ -389,7 +389,7 @@ class _ItemRow extends StatelessWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Qty',
-                hintStyle: TextStyle(fontSize: 13, color: AppColors.muted),
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.muted),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
                 border: OutlineInputBorder(
@@ -411,7 +411,7 @@ class _ItemRow extends StatelessWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: '₹ Price',
-                hintStyle: TextStyle(fontSize: 13, color: AppColors.muted),
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.muted),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                 border: OutlineInputBorder(

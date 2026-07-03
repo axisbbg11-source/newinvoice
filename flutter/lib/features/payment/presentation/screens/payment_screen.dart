@@ -195,10 +195,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> with SingleTicker
                   minimumSize: const Size(double.infinity, 56),
                 ),
                 child: _processing
-                    ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
-                        const SizedBox(width: 12),
-                        const Text('Processing...'),
+                    ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                        SizedBox(width: 12),
+                        Text('Processing...'),
                       ])
                     : Text('Pay ₹${fmt.format(invoice.total)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),

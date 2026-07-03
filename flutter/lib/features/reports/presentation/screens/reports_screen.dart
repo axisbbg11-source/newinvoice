@@ -132,12 +132,12 @@ class ReportsScreen extends ConsumerWidget {
                                 color: AppColors.successLight,
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.check_circle, size: 14, color: AppColors.success),
-                                  const SizedBox(width: 4),
-                                  const Text(
+                                  Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                                  SizedBox(width: 4),
+                                  Text(
                                     'Sent',
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.success),
                                   ),

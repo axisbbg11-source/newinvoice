@@ -8,10 +8,15 @@ from pydantic import BaseModel, EmailStr, validator, field_validator
 from typing import Optional, List
 import os, re, json, logging, httpx
 from supabase import create_client, Client
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+import random
 from jinja2 import Template
 import resend
 from functools import wraps
+from dotenv import load_dotenv
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,14 +49,15 @@ def validate_phone(phone: str) -> str:
     """Validate and clean phone number"""
     if not phone:
         return ""
-    phone = ''.join(c for c in phone if c.isdigit())
-    if len(phone) < 10 or len(phone) > 15:
+    # Allow E.164 or local numbers; strip spaces/characters but keep leading + if present
+    cleaned = ''.join(c for c in phone if c.isdigit())
+    if phone.strip().startswith('+'):
+        cleaned = '+' + cleaned
+    # normalize to E.164-like numeric string (without +) for internal use
+    digits = cleaned.lstrip('+')
+    if len(digits) < 10 or len(digits) > 15:
         raise ValueError("Invalid phone number")
-    if not phone.startswith('91'):
-        phone = '91' + phone
-    if not re.match(r'^91[1-9]\d{9,12}$', phone):
-        raise ValueError("Invalid phone format")
-    return phone
+    return '+' + digits
 
 
 def import_weasyprint():
@@ -130,6 +136,7 @@ ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,https
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
@@ -146,6 +153,44 @@ def get_supabase() -> Client:
         raise HTTPException(status_code=500, detail="SUPABASE_SERVICE_KEY not configured")
 
     return create_client(supabase_url, supabase_key)
+
+
+def validate_config() -> None:
+    required = [
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_KEY",
+        "GROQ_API_KEY",
+        "RESEND_API_KEY",
+        "FROM_EMAIL",
+        "FROM_NAME",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_MESSAGING_SID",
+    ]
+    missing = [name for name in required if not os.environ.get(name)]
+    if missing:
+        raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    try:
+        validate_config()
+        logger.info("Configuration validated successfully.")
+    except Exception as exc:
+        logger.critical(f"Startup configuration error: {exc}")
+        raise
+
+
+def verify_invoice_ownership(invoice_id: str, current_user: dict):
+    """Verify that the current user owns the invoice."""
+    supabase = get_supabase()
+    invoice = supabase.table("invoices").select("user_id").eq("id", invoice_id).execute()
+    if not invoice.data:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.data[0]["user_id"] != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="Not authorized to access this invoice")
+    return True
 
 # ── Audit Logging ─────────────────────────────────
 def log_audit(request: Request, supabase: Client, user_id: str, action: str, table_name: str, record_id: str = None, details: dict = None):
@@ -416,7 +461,7 @@ async def generate_invoice_pdf(request: Request, req: GeneratePDFRequest, curren
 
 # Generate AI client report
 @app.post("/api/v1/reports/generate")
-async def generate_report(req: GenerateReportRequest):
+async def generate_report(req: GenerateReportRequest, current_user: dict = Depends(get_current_user)):
     # Sanitize user inputs to prevent prompt injection
     safe_client_name = sanitize_for_prompt(req.client_name)
     safe_business_name = sanitize_for_prompt(req.business_name)
@@ -439,7 +484,7 @@ Do NOT use markdown or bullet points. Write in flowing paragraphs.
 
 # AI follow-up email
 @app.post("/api/v1/invoices/followup-email")
-async def generate_followup_email(req: FollowupRequest):
+async def generate_followup_email(req: FollowupRequest, current_user: dict = Depends(get_current_user)):
     # Sanitize inputs
     safe_business_name = sanitize_for_prompt(req.business_name)
     safe_client_name = sanitize_for_prompt(req.client_name)
@@ -476,7 +521,8 @@ async def generate_contract(
     party_b: str,
     details: str,
     duration: str,
-    amount: Optional[str] = None
+    amount: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
 ):
     # Sanitize inputs
     safe_contract_type = sanitize_for_prompt(contract_type)
@@ -507,14 +553,14 @@ Keep it clear and simple — avoid excessive legal jargon.
 # Send email (rate limited: 5 requests/minute to prevent abuse)
 @app.post("/api/v1/emails/send")
 @limiter.limit("5/minute")
-async def send_email(request: Request, req: SendEmailRequest):
+async def send_email(request: Request, req: SendEmailRequest, current_user: dict = Depends(get_current_user)):
     try:
         resend.api_key = os.environ.get("RESEND_API_KEY", "")
         if not resend.api_key:
             return {"success": False, "error": "RESEND_API_KEY not configured"}
 
-        from_email = req.from_email or os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-        from_name = req.from_name or "BizDesk"
+        authoritative_from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
+        from_name = os.environ.get("FROM_NAME", "BizDesk")
 
         # Sanitize user input to prevent XSS
         safe_to_name = sanitize_html(req.to_name)
@@ -522,7 +568,7 @@ async def send_email(request: Request, req: SendEmailRequest):
         safe_subject = sanitize_html(req.subject)
 
         r = resend.Emails.send({
-            "from": f"{from_name} <{from_email}>",
+            "from": f"{from_name} <{authoritative_from_email}>",
             "to": req.to_email,
             "subject": safe_subject,
             "html": f"<p>Dear {safe_to_name},</p><p>{safe_body}</p><p>Best regards,<br/>{sanitize_html(req.business_name or 'BizDesk')}</p>"
@@ -534,7 +580,7 @@ async def send_email(request: Request, req: SendEmailRequest):
 
 # Send report to client
 @app.post("/api/v1/reports/send")
-async def send_report(req: SendReportRequest):
+async def send_report(req: SendReportRequest, current_user: dict = Depends(get_current_user)):
     try:
         resend.api_key = os.environ.get("RESEND_API_KEY", "")
         if not resend.api_key:
@@ -574,7 +620,7 @@ async def send_report(req: SendReportRequest):
 
 # ── Auto-Send Invoice Email (Payment Reminder) ─────────────────────────────
 @app.post("/api/v1/invoices/send-reminder")
-async def send_invoice_reminder(req: InvoiceEmailRequest):
+async def send_invoice_reminder(req: InvoiceEmailRequest, current_user: dict = Depends(get_current_user)):
     try:
         resend.api_key = os.environ.get("RESEND_API_KEY", "")
         if not resend.api_key:
@@ -652,7 +698,7 @@ Best regards,
 
 # ── Auto-Send Payment Received Thank You ────────────────────────────────────
 @app.post("/api/v1/invoices/send-thankyou")
-async def send_payment_thankyou(req: PaymentReceivedRequest):
+async def send_payment_thankyou(req: PaymentReceivedRequest, current_user: dict = Depends(get_current_user)):
     try:
         resend.api_key = os.environ.get("RESEND_API_KEY", "")
         if not resend.api_key:
@@ -703,7 +749,7 @@ Best regards,
 
 # ── Auto-Send Invoice Created Email ────────────────────────────────────────
 @app.post("/api/v1/invoices/send-invoice")
-async def send_invoice_created(req: InvoiceEmailRequest):
+async def send_invoice_created(req: InvoiceEmailRequest, current_user: dict = Depends(get_current_user)):
     try:
         resend.api_key = os.environ.get("RESEND_API_KEY", "")
         if not resend.api_key:
@@ -784,9 +830,105 @@ class WhatsAppRequest(BaseModel):
             raise ValueError("Message too long (max 4096 characters)")
         return v
 
+
+# ── Twilio SMS OTP (simple implementation) ───────────────────────────────
+OTP_STORE: dict = {}
+
+class SendOTPRequest(BaseModel):
+    email: EmailStr
+    phone: str
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    phone: str
+    code: str
+
+
+def normalize_phone_digits(phone: str) -> str:
+    return ''.join(c for c in phone if c.isdigit())
+
+
+@app.post("/auth/send-otp")
+@rate_limit(10)
+async def send_otp(req: SendOTPRequest):
+    """Send a 6-digit OTP to the provided phone using Twilio Messaging API.
+    Note: This implementation stores OTPs in-memory (ephemeral)."""
+    try:
+        phone = validate_phone(req.phone)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    email = req.email.strip().lower()
+    supabase = get_supabase()
+    user_resp = supabase.table("users").select("id, email, phone").eq("email", email).maybe_single()
+    if not user_resp or not user_resp.data:
+        raise HTTPException(status_code=400, detail="No user found with that email")
+
+    user_data = user_resp.data
+    stored_phone = user_data.get("phone") or ""
+    if normalize_phone_digits(stored_phone) != normalize_phone_digits(phone):
+        raise HTTPException(status_code=400, detail="Phone number does not match the user account")
+
+    code = f"{random.randint(100000, 999999)}"
+    expires = datetime.utcnow() + timedelta(minutes=5)
+    OTP_STORE[f"{email}|{phone}"] = {"code": code, "expires_at": expires}
+
+    sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    token = os.environ.get("TWILIO_AUTH_TOKEN")
+    messaging_sid = os.environ.get("TWILIO_MESSAGING_SID")
+    demo_mode = os.environ.get("OTP_DEMO_MODE", "false").lower() in ("1", "true", "yes")
+
+    if not (sid and token and messaging_sid):
+        if not demo_mode:
+            logger.error("Twilio OTP not configured and demo mode disabled")
+            raise HTTPException(status_code=500, detail="OTP sending is not configured")
+        logger.info(f"Demo OTP for {email} {phone}: {code}")
+        return {"success": True, "demo": True}
+
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
+    data = {
+        "To": phone,
+        "MessagingServiceSid": messaging_sid,
+        "Body": f"Your BizDesk verification code is {code}" 
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(url, data=data, auth=(sid, token), timeout=10)
+        if resp.status_code not in (200, 201):
+            logger.error(f"Twilio send failed: {resp.status_code} {resp.text}")
+            raise HTTPException(status_code=502, detail="Failed to send SMS via Twilio")
+
+    return {"success": True}
+
+
+@app.post("/auth/verify-otp")
+@rate_limit(10)
+async def verify_otp(req: VerifyOTPRequest):
+    try:
+        phone = validate_phone(req.phone)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    email = req.email.strip().lower()
+    key = f"{email}|{phone}"
+    entry = OTP_STORE.get(key)
+    if not entry:
+        raise HTTPException(status_code=400, detail="No OTP requested for this email and phone")
+
+    if entry["expires_at"] < datetime.utcnow():
+        del OTP_STORE[key]
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    if entry["code"] != req.code:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    del OTP_STORE[key]
+    return {"success": True, "message": "Phone verified"}
+
+
 # ── WhatsApp Reminder (using Twilio or similar) ─────────────────────────
 @app.post("/api/v1/whatsapp/send")
-async def send_whatsapp(req: WhatsAppRequest):
+async def send_whatsapp(req: WhatsAppRequest, current_user: dict = Depends(get_current_user)):
     """
     Send WhatsApp message.
     Note: Requires Twilio or similar WhatsApp Business API setup.
@@ -823,7 +965,7 @@ async def send_whatsapp(req: WhatsAppRequest):
 
 # ── Auto-Send Invoice via WhatsApp ───────────────────────────────────────
 @app.post("/api/v1/invoices/send-whatsapp")
-async def send_invoice_whatsapp(req: InvoiceEmailRequest):
+async def send_invoice_whatsapp(req: InvoiceEmailRequest, current_user: dict = Depends(get_current_user)):
     if not req.client_phone:
         return {"success": False, "error": "No phone number"}
 
@@ -850,7 +992,7 @@ Due Date: {req.due_date}
 
 Thank you!
 """
-    return await send_whatsapp(WhatsAppRequest(phone=f"+{phone}", message=message))
+    return await send_whatsapp(WhatsAppRequest(phone=f"+{phone}", message=message), current_user)
 
 # ── AI Chat Endpoint (keep API key server-side) ───────────────────────────
 class ChatMessage(BaseModel):
@@ -863,7 +1005,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/v1/ai/chat")
 @limiter.limit("10/minute")
-async def chat(request: Request, req: ChatRequest):
+async def chat(request: Request, req: ChatRequest, current_user: dict = Depends(get_current_user)):
     """AI chat endpoint - API key stays on server"""
     try:
         system_prompt = """You are BizDesk AI assistant for a small business owner.

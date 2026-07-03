@@ -51,8 +51,8 @@ class ClientsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Page title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 52, 20, 16),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 52, 20, 16),
               child: Text('Clients', style: AppTextStyles.pageTitle),
             ),
 
@@ -73,7 +73,7 @@ class ClientsScreen extends ConsumerWidget {
                     Expanded(
                       child: TextField(
                         onChanged: (v) => ref.read(clientSearchQueryProvider.notifier).state = v,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: 'Search clients...',
                           hintStyle: TextStyle(fontSize: 13.5, color: AppColors.muted),
                           border: InputBorder.none,
@@ -210,21 +210,28 @@ class ClientsScreen extends ConsumerWidget {
                                         ],
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                     // Owed amount chip (if any)
                                     owed.when(
                                       data: (o) => o > 0
-                                          ? Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.amberTint,
-                                                borderRadius: BorderRadius.circular(20),
-                                              ),
-                                              child: Text(
-                                                '₹${fmt.format(o)}',
-                                                style: const TextStyle(
-                                                  fontSize: 13.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.amber,
+                                          ? ConstrainedBox(
+                                              constraints: const BoxConstraints(maxWidth: 90),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.amberTint,
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  '₹${fmt.format(o)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.amber,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.right,
                                                 ),
                                               ),
                                             )

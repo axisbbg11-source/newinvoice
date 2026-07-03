@@ -138,7 +138,7 @@ class CreateRecurringScreen extends ConsumerStatefulWidget {
 class _CreateRecurringScreenState extends ConsumerState<CreateRecurringScreen> {
   ClientModel? _selectedClient;
   String _frequency = 'monthly';
-  DateTime _startDate = DateTime.now();
+  final DateTime _startDate = DateTime.now();
   final _amountCtrl = TextEditingController();
   bool _loading = false;
   List<ClientModel> _clients = [];
@@ -214,7 +214,7 @@ class _CreateRecurringScreenState extends ConsumerState<CreateRecurringScreen> {
               const SizedBox(height: 10),
               _clients.isEmpty ? const Text('No clients')
                   : DropdownButtonFormField<ClientModel>(
-                      value: _selectedClient,
+                      initialValue: _selectedClient,
                       hint: const Text('Select'),
                       items: _clients.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
                       onChanged: (c) => setState(() => _selectedClient = c),

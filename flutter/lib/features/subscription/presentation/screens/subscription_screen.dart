@@ -402,7 +402,7 @@ class _PlanCard extends StatelessWidget {
                   children: [
                     Text(
                       '₹$price',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,

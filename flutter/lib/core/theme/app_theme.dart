@@ -1,72 +1,90 @@
 import 'package:flutter/material.dart';
 
-/// App colors — exact values from design spec
+/// App colors — clean, professional palette inspired by top apps (Google Pay, Paytm)
+/// Logo color: Navy Blue (#1E2A52)
 class AppColors {
   AppColors._();
 
-  // Brand colors
-  static const Color brand = Color(0xFF1E2A52); // Navy — primary buttons, active tab, FAB
-  static const Color brandDark = Color(0xFF141B38); // Gradient end / pressed state
-  static const Color brandTint = Color(0xFFE7E9F2); // Light backgrounds behind brand icons/badges
+  // Brand colors - Based on your logo (Navy Blue #1E2A52)
+  static const Color brand = Color(0xFF1E3A5F); // Professional navy - primary actions
+  static const Color brandDark = Color(0xFF152C47); // Darker navy - pressed states
+  static const Color brandLight = Color(0xFFE8EEF4); // Light navy - backgrounds, badges
 
-  // Surfaces
-  static const Color pageBackground = Color(0xFFF4F6FB); // Scaffold background
-  static const Color card = Color(0xFFFFFFFF); // All cards/surfaces
+  // Surfaces - Clean white/gray palette
+  static const Color pageBackground = Color(0xFFF8FAFC); // Light gray-white background
+  static const Color card = Color(0xFFFFFFFF); // Pure white cards
+  static const Color surfaceVariant = Color(0xFFF1F5F9); // Secondary surfaces
 
-  // Semantic — status colors (consistent everywhere)
-  static const Color emerald = Color(0xFF189B63); // "paid" status, money-in icon
-  static const Color emeraldTint = Color(0xFFE4F6ED); // paid chip background
-  static const Color amber = Color(0xFFE68A00); // "pending" status, premium badge
-  static const Color amberTint = Color(0xFFFFF2DE); // pending chip background
-  static const Color rose = Color(0xFFE23744); // "overdue" status, money-out icon, logout
-  static const Color roseTint = Color(0xFFFDEAEA); // overdue chip background
+  // Semantic — refined status colors (consistent, professional)
+  static const Color success = Color(0xFF16A34A); // Green - paid status
+  static const Color successLight = Color(0xFFDCFCE7); // Light green background
+  static const Color warning = Color(0xFFCA8A04); // Amber - pending status
+  static const Color warningLight = Color(0xFFFEF9C3); // Light amber background
+  static const Color error = Color(0xFFDC2626); // Red - overdue status
+  static const Color errorLight = Color(0xFFFEE2E2); // Light red background
+  static const Color info = Color(0xFF2563EB); // Blue - informational
+  static const Color infoLight = Color(0xFFDBEAFE); // Light blue background
 
-  // Quick action colors
-  static const Color purple = Color(0xFF7C4DFF); // client quick-action icon
-  static const Color purpleTint = Color(0xFFF1ECFF); // client icon background
+  // Text - Clean grays
+  static const Color textPrimary = Color(0xFF1E293B); // Dark slate - headings
+  static const Color textSecondary = Color(0xFF64748B); // Medium gray - secondary text
+  static const Color textMuted = Color(0xFF94A3B8); // Light gray - hints, labels
+  static const Color textOnBrand = Color(0xFFFFFFFF); // White text on brand color
 
-  // Text
-  static const Color text = Color(0xFF12141A); // headings, amounts
-  static const Color muted = Color(0xFF767E8C); // labels, secondary text
+  // Borders - Subtle
+  static const Color border = Color(0xFFE2E8F0); // Light gray borders
+  static const Color borderFocused = Color(0xFF1E3A5F); // Navy focus border
 
-  // Borders
-  static const Color line = Color(0xFFE7EAF0); // card borders, dividers
+  // Quick action accent colors - Muted/professional versions
+  static const Color accent1 = Color(0xFF7C3AED); // Purple - for variety
+  static const Color accent1Light = Color(0xFFF3E8FF);
+  static const Color accent2 = Color(0xFF0891B2); // Cyan
+  static const Color accent2Light = Color(0xFFE0F2FE);
 
-  // Backward compatibility aliases for existing code
+  // Backward compatibility aliases
   static const Color primary = brand;
-  static const Color primaryLight = brandTint;
-  static const Color accent = emerald;
-  static const Color accentLight = emeraldTint;
+  static const Color primaryLight = brandLight;
+  static const Color secondary = accent1;
+  static const Color secondaryLight = accent1Light;
+  static const Color accent = success;
+  static const Color accentLight = successLight;
   static const Color surface = card;
   static const Color surfaceAlt = pageBackground;
-  static const Color border = line;
-  static const Color textPrimary = text;
-  static const Color textSecondary = muted;
-  static const Color textMuted = muted;
-  static const Color success = emerald;
-  static const Color warning = amber;
-  static const Color danger = rose;
-  static const Color successLight = emeraldTint;
-  static const Color warningLight = amberTint;
-  static const Color dangerLight = roseTint;
+  static const Color text = textPrimary;
+  static const Color muted = textSecondary;
+  static const Color line = border;
+  static const Color emerald = success;
+  static const Color emeraldTint = successLight;
+  static const Color amber = warning;
+  static const Color amberTint = warningLight;
+  static const Color rose = error;
+  static const Color roseTint = errorLight;
+  static const Color purple = accent1;
+  static const Color purpleTint = accent1Light;
+  static const Color danger = error;
+  static const Color dangerLight = errorLight;
+  // Legacy aliases
+  static const Color brandTint = brandLight;
 
   // Helper method to create consistent card decoration
   static BoxDecoration get cardDecoration => BoxDecoration(
         color: card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: line, width: 1),
-        boxShadow: const [
+        border: Border.all(color: border, width: 1),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A12141A),
-            offset: Offset(0, 1),
-            blurRadius: 2,
-          ),
-          BoxShadow(
-            color: Color(0x0D12141A),
-            offset: Offset(0, 4),
-            blurRadius: 14,
+            color: textPrimary.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
+      );
+
+  // Subtle card decoration for less prominent cards
+  static BoxDecoration get cardDecorationSubtle => BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border, width: 1),
       );
 
   // Chip decoration helpers
@@ -76,117 +94,124 @@ class AppColors {
       );
 }
 
-/// App text styles — Inter font, exact sizes from design spec
+/// App text styles — Clean, professional typography
 class AppTextStyles {
   AppTextStyles._();
 
-  // Balance amount: 44px / weight 800 / letter-spacing -0.02em
+  // Balance amount: Large display for totals
   static const TextStyle balanceAmount = TextStyle(
-    fontSize: 44,
-    fontWeight: FontWeight.w800,
+    fontSize: 40,
+    fontWeight: FontWeight.w700,
     letterSpacing: -0.02,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Section titles: 19px / weight 600
+  // Section titles: Bold headings
   static const TextStyle sectionTitle = TextStyle(
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Card titles: 14.5px / weight 700
+  // Card titles: Medium weight
   static const TextStyle cardTitle = TextStyle(
-    fontSize: 14.5,
-    fontWeight: FontWeight.w700,
-    color: AppColors.text,
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
   );
 
-  // Labels/eyebrows: 11-12px / weight 700 / uppercase / letter-spacing .06em
+  // Labels/eyebrows: Small uppercase
   static const TextStyle label = TextStyle(
-    fontSize: 11.5,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 0.06,
-    color: AppColors.muted,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.5,
+    color: AppColors.textMuted,
   );
 
-  // Body/secondary: 12-13px / weight 400-600, muted color
+  // Body text: Regular weight
   static const TextStyle body = TextStyle(
-    fontSize: 12.5,
+    fontSize: 14,
     fontWeight: FontWeight.w400,
-    color: AppColors.muted,
+    color: AppColors.textSecondary,
   );
 
   static const TextStyle bodyMedium = TextStyle(
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: FontWeight.w500,
-    color: AppColors.muted,
+    color: AppColors.textSecondary,
   );
 
-  // Page title: 26px / weight 600
+  // Page title: Large heading
   static const TextStyle pageTitle = TextStyle(
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.01,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Brand name: 18px / weight 600
+  // Brand name: App name styling
   static const TextStyle brandName = TextStyle(
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.01,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Form title: 18px / weight 600
+  // Form title: Form headings
   static const TextStyle formTitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Stat value: 16px / weight 800
+  // Stat value: Numeric values
   static const TextStyle statValue = TextStyle(
     fontSize: 16,
-    fontWeight: FontWeight.w800,
-    color: AppColors.text,
-  );
-
-  // Amount (row): 15.5px / weight 600
-  static const TextStyle amount = TextStyle(
-    fontSize: 15.5,
     fontWeight: FontWeight.w600,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Total amount: 22px / weight 600
+  // Amount (row): Inline amounts
+  static const TextStyle amount = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+  );
+
+  // Total amount: Large totals
   static const TextStyle totalAmount = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.w600,
-    color: AppColors.text,
+    color: AppColors.textPrimary,
   );
 
-  // Chip text: 10px / weight 800 / uppercase
+  // Chip text: Status badges
   static const TextStyle chip = TextStyle(
-    fontSize: 10,
-    fontWeight: FontWeight.w800,
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
     letterSpacing: 0.03,
   );
 
   // Button text
   static const TextStyle button = TextStyle(
-    fontSize: 12.5,
-    fontWeight: FontWeight.w700,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
     color: Colors.white,
   );
 
-  // Invoice ID: 11px / weight 700
+  // Invoice ID: Small labels
   static const TextStyle invoiceId = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w700,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
     letterSpacing: 0.02,
-    color: AppColors.muted,
+    color: AppColors.textMuted,
+  );
+
+  // App bar title
+  static const TextStyle appBarTitle = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
   );
 }
 
@@ -201,39 +226,52 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.brand,
         primary: AppColors.brand,
-        secondary: AppColors.purple,
+        secondary: AppColors.accent1,
         surface: AppColors.card,
-        error: AppColors.rose,
+        error: AppColors.error,
         brightness: Brightness.light,
       ),
       textTheme: const TextTheme(
         headlineMedium: TextStyle(
-          fontSize: 26,
+          fontSize: 24,
           fontWeight: FontWeight.w600,
-          color: AppColors.text,
+          color: AppColors.textPrimary,
           letterSpacing: -0.5,
         ),
         bodyMedium: TextStyle(
           fontSize: 14,
-          color: AppColors.muted,
+          color: AppColors.textSecondary,
         ),
+      ),
+      // AppBar theme
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.pageBackground,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       // Form field styles
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.card,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        labelStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
-        hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
-        prefixIconColor: AppColors.muted,
-        prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+        prefixIconColor: AppColors.textMuted,
+        prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.line, width: 1),
+          borderSide: const BorderSide(color: AppColors.border, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.line, width: 1),
+          borderSide: const BorderSide(color: AppColors.border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -241,36 +279,41 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.rose, width: 1),
+          borderSide: const BorderSide(color: AppColors.error, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
       ),
-      // Primary button
+      // Primary button - Clean solid color
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.brand,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(50),
+          minimumSize: const Size.fromHeight(52),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
-      // Secondary button
+      // Secondary button - Clean outline
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.text,
-          minimumSize: const Size.fromHeight(48),
+          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          side: const BorderSide(color: AppColors.line, width: 1),
+          side: const BorderSide(color: AppColors.border, width: 1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
+      // Text button
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.emerald,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          foregroundColor: AppColors.brand,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       // Card theme
@@ -279,12 +322,42 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.line, width: 1),
+          side: const BorderSide(color: AppColors.border, width: 1),
         ),
+        margin: EdgeInsets.zero,
+      ),
+      // Bottom navigation bar theme
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.card,
+        selectedItemColor: AppColors.brand,
+        unselectedItemColor: AppColors.textMuted,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+      ),
+      // Divider theme
+      dividerTheme: const DividerThemeData(
+        color: AppColors.border,
+        thickness: 1,
+        space: 1,
+      ),
+      // List tile theme
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        minLeadingWidth: 24,
+      ),
+      // Chip theme
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceVariant,
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
 
   // Card decoration helper
   static BoxDecoration get cardDecoration => AppColors.cardDecoration;
+  static BoxDecoration get cardDecorationSubtle => AppColors.cardDecorationSubtle;
 }

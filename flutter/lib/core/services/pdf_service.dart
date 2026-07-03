@@ -63,7 +63,7 @@ class PdfService {
                     children: [
                       pw.Text(
                         'INVOICE',
-                        style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800),
+                        style: const pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800),
                       ),
                       pw.SizedBox(height: 8),
                       pw.Text(invoice.invoiceNumber, style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
@@ -103,7 +103,7 @@ class PdfService {
                         pw.SizedBox(height: 8),
                         pw.Text(
                           client?.name ?? 'Client',
-                          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                          style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
                         ),
                         if (client?.email != null) ...[
                           pw.SizedBox(height: 4),
@@ -127,7 +127,7 @@ class PdfService {
                         mainAxisSize: pw.MainAxisSize.min,
                         children: [
                           pw.Text('Invoice Date: ', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                          pw.Text(_dateFmt.format(invoice.invoiceDate), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(_dateFmt.format(invoice.invoiceDate), style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                         ],
                       ),
                       pw.SizedBox(height: 8),
@@ -135,7 +135,7 @@ class PdfService {
                         mainAxisSize: pw.MainAxisSize.min,
                         children: [
                           pw.Text('Due Date: ', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                          pw.Text(_dateFmt.format(invoice.dueDate), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(_dateFmt.format(invoice.dueDate), style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                         ],
                       ),
                       if (invoice.isOverdue && !isPaid) ...[
@@ -164,19 +164,19 @@ class PdfService {
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text('Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        child: pw.Text('Description', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                        child: pw.Text('Qty', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text('Unit Price', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+                        child: pw.Text('Unit Price', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text('Amount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+                        child: pw.Text('Amount', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
                       ),
                     ],
                   ),
@@ -217,10 +217,10 @@ class PdfService {
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Total', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                      pw.Text('Total', style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
                       pw.Text(
                         '₹${_currencyFmt.format(invoice.total)}',
-                        style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                        style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
                       ),
                     ],
                   ),
@@ -230,7 +230,7 @@ class PdfService {
 
               // Notes
               if (invoice.notes != null && invoice.notes!.isNotEmpty) ...[
-                pw.Text('Notes', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+                pw.Text('Notes', style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
                 pw.SizedBox(height: 8),
                 pw.Text(invoice.notes!, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
                 pw.SizedBox(height: 20),
@@ -246,7 +246,7 @@ class PdfService {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Payment Terms', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Payment Terms', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                     pw.SizedBox(height: 4),
                     pw.Text('• Payment is due within the specified due date', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                     pw.Text('• Please include invoice number with your payment', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
@@ -261,7 +261,7 @@ class PdfService {
               pw.Center(
                 child: pw.Text(
                   'Thank you for your business!',
-                  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600),
+                  style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600),
                 ),
               ),
             ],

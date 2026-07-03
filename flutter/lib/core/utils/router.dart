@@ -135,16 +135,23 @@ class _MainShellState extends State<MainShell> {
       ),
       // Bottom nav with 5 items: Home / Invoices / + / Clients / More
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.card,
           border: Border(
-            top: BorderSide(color: AppColors.line, width: 1),
+            top: BorderSide(color: AppColors.border.withValues(alpha: 0.5), width: 1),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.textPrimary.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: SafeArea(
           child: Container(
             height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -233,7 +240,7 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-// Floating "Ask AI" button - navy rounded-square, chat-bubble icon
+// Floating "Ask AI" button - Clean, professional design
 class _AIFloatingButton extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -244,30 +251,30 @@ class _AIFloatingButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 52,
-        height: 52,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: AppColors.brand,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.brandDark.withValues(alpha: 0.32),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
+              color: AppColors.brand.withValues(alpha: 0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: const Icon(
-          Icons.chat_bubble_outline,
+          Icons.auto_awesome,
           color: Colors.white,
-          size: 24,
+          size: 22,
         ),
       ),
     );
   }
 }
 
-// AI Panel - bottom sheet with input
+// AI Panel - bottom sheet with input (Clean design)
 class _AIPanel extends StatefulWidget {
   final VoidCallback onClose;
 
@@ -290,17 +297,17 @@ class _AIPanelState extends State<_AIPanel> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.text,
+        color: AppColors.brand,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x40000000),
-            blurRadius: 50,
-            offset: Offset(0, 24),
+            color: AppColors.brandDark.withValues(alpha: 0.3),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,26 +319,19 @@ class _AIPanelState extends State<_AIPanel> {
               Row(
                 children: [
                   Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.emerald,
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0x66189B63),
-                          blurRadius: 3,
-                          spreadRadius: 3,
-                        ),
-                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   const Text(
-                    'Ask AI',
+                    'AI Assistant',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -342,40 +342,41 @@ class _AIPanelState extends State<_AIPanel> {
                 child: const Text(
                   'Close',
                   style: TextStyle(
-                    color: Color(0xFF8890A0),
+                    color: Color(0xFFB0BEC5),
                     fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           // Suggestion text
           const Text(
-            'Try: "Which invoices are overdue?" or "Draft a reminder for bibek\'s ₹123 invoice."',
+            'Try: "Which invoices are overdue?" or "Draft a reminder for client invoice."',
             style: TextStyle(
-              color: Color(0xFFB8BECC),
-              fontSize: 12.5,
+              color: Color(0xFFB0BEC5),
+              fontSize: 13,
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           // Input row
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1B2233),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(14),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                     decoration: const InputDecoration(
                       hintText: 'Ask about your business...',
-                      hintStyle: TextStyle(color: Color(0xFF7B8296)),
+                      hintStyle: TextStyle(color: AppColors.textMuted),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                       isDense: true,
@@ -383,8 +384,8 @@ class _AIPanelState extends State<_AIPanel> {
                   ),
                 ),
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: AppColors.brand,
                     borderRadius: BorderRadius.circular(10),
@@ -392,7 +393,7 @@ class _AIPanelState extends State<_AIPanel> {
                   child: const Icon(
                     Icons.send,
                     color: Colors.white,
-                    size: 14,
+                    size: 18,
                   ),
                 ),
               ],
@@ -404,7 +405,7 @@ class _AIPanelState extends State<_AIPanel> {
   }
 }
 
-// + Create button with gradient
+// + Create button - Clean, professional design (no neon)
 class _CreateButton extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -415,27 +416,23 @@ class _CreateButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 52,
-        height: 52,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2A3B6E), AppColors.brand, AppColors.brandDark],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: AppColors.brand,
           boxShadow: [
             BoxShadow(
-              color: AppColors.brandDark.withValues(alpha: 0.4),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
+              color: AppColors.brand.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: const Icon(
           Icons.add,
           color: Colors.white,
-          size: 21,
+          size: 28,
         ),
       ),
     );
@@ -467,17 +464,17 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryLight : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
+                color: isSelected ? AppColors.brandLight : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected ? AppColors.primary : AppColors.textMuted,
+                color: isSelected ? AppColors.brand : AppColors.textMuted,
                 size: 22,
               ),
             ),
@@ -487,7 +484,7 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? AppColors.primary : AppColors.textMuted,
+                color: isSelected ? AppColors.brand : AppColors.textMuted,
               ),
             ),
           ],
@@ -516,9 +513,10 @@ class _MoreDrawerSheet extends ConsumerWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Handle
           Container(
             margin: const EdgeInsets.only(top: 12),
@@ -537,7 +535,7 @@ class _MoreDrawerSheet extends ConsumerWidget {
             height: 48,
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'BizDesk',
             style: TextStyle(
               fontSize: 18,
@@ -550,51 +548,57 @@ class _MoreDrawerSheet extends ConsumerWidget {
           userAsync.when(
             data: (u) => Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.1),
-                    AppColors.accent.withValues(alpha: 0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+              // Use Material + Ink so ListTile ink splashes are visible over a decorated background
+              child: Material(
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-              ),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  width: 44,
-                  height: 44,
+                child: Ink(
                   decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.card_membership, color: AppColors.accent, size: 22),
-                ),
-                title: const Text('Subscription', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                subtitle: Text(
-                  u?.plan == 'free' ? 'Free Plan - Tap to upgrade' : '${u?.plan ?? "Free"} Plan',
-                  style: TextStyle(fontSize: 12, color: u?.plan == 'free' ? AppColors.accent : AppColors.textMuted),
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: u?.plan == 'pro' ? AppColors.success : AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    u?.plan == 'pro' ? 'PRO' : u?.plan == 'agency' ? 'AGENCY' : 'FREE',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: u?.plan == 'free' ? AppColors.textMuted : Colors.white,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.1),
+                        AppColors.accent.withValues(alpha: 0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                  ),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.card_membership, color: AppColors.accent, size: 22),
+                    ),
+                    title: const Text('Subscription', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    subtitle: Text(
+                      u?.plan == 'free' ? 'Free Plan - Tap to upgrade' : '${u?.plan ?? "Free"} Plan',
+                      style: TextStyle(fontSize: 12, color: u?.plan == 'free' ? AppColors.accent : AppColors.textMuted),
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: u?.plan == 'pro' ? AppColors.success : AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        u?.plan == 'pro' ? 'PRO' : u?.plan == 'agency' ? 'AGENCY' : 'FREE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: u?.plan == 'free' ? AppColors.textMuted : Colors.white,
+                        ),
+                      ),
+                    ),
+                    onTap: () => onNavigate('/subscription'),
                   ),
                 ),
-                onTap: () => onNavigate('/subscription'),
               ),
             ),
             loading: () => const SizedBox.shrink(),
@@ -688,7 +692,8 @@ class _MoreDrawerSheet extends ConsumerWidget {
           SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -759,7 +764,7 @@ class _DrawerItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+                const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
               ],
             ),
           ),

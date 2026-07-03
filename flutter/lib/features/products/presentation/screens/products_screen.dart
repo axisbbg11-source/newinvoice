@@ -133,7 +133,7 @@ class ProductsScreen extends ConsumerWidget {
                           ),
                           if (product.price != null)
                             Text(
-                              '₹${fmt.format(product.price)}' + (product.unit != null ? '/${product.unit}' : ''),
+                              '₹${fmt.format(product.price)}${product.unit != null ? '/${product.unit}' : ''}',
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary),
                             ),
                           const SizedBox(width: 8),

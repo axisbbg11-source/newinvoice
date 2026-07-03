@@ -1,16 +1,20 @@
 class AppConstants {
   // Supabase — REPLACE WITH YOUR VALUES from Supabase Dashboard → Settings → API
-  // In production, use environment variables
-  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://wgqsvqqubablmqdyomtv.supabase.co');
-  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndncXN2cXF1YmFibG1xZHlvbXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTk5NjYsImV4cCI6MjA5ODI5NTk2Nn0.2tQgCtqnB91eacqyoCKrDzRCsTCHE_NPT2jptF02lWI');
+  static const supabaseUrl = 'https://wgqsvqqubablmqdyomtv.supabase.co';
+  static const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndncXN2cXF1YmFibG1xZHlvbXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTk5NjYsImV4cCI6MjA5ODI5NTk2Nn0.2tQgCtqnB91eacqyoCKrDzRCsTCHE_NPT2jptF02lWI';
 
   // NOTE: testUserId removed for security - use authenticated user only
   // Storage bucket name
   static const supabaseStorageBucket = 'bizdesk-files';
 
-  // Backend API — all API keys are kept server-side only
-  // In production, use environment variables
-  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://newinvoice.railway.internal');
+  // Backend API — use localhost for dev builds so the browser can resolve it.
+  // Change this to your deployed backend URL for production via --dart-define.
+  static const defaultApiBaseUrl = 'http://127.0.0.1:8000';
+  static String get apiBaseUrl {
+    const envUrl = String.fromEnvironment('API_BASE_URL');
+    if (envUrl.isNotEmpty) return envUrl;
+    return defaultApiBaseUrl;
+  }
 
   // App info
   static const appName = 'BizDesk';

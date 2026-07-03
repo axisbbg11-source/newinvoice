@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import '../../auth_provider.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -14,12 +18,24 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscure = true;
   bool _loading = false;
+  bool _otpSent = false;
+  bool _otpVerified = false;
+  bool _sendOtpLoading = false;
+  bool _verifyOtpLoading = false;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_otpVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verify OTP before signing in.')),
+      );
+      return;
+    }
     setState(() => _loading = true);
 
     await ref.read(authProvider.notifier).signIn(
@@ -55,6 +71,113 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Future<void> _sendOtp() async {
+    final email = _emailCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    if (email.isEmpty || phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email and phone first.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _sendOtpLoading = true;
+      _otpSent = false;
+      _otpVerified = false;
+    });
+
+    try {
+      final uri = Uri.parse('${AppConstants.apiBaseUrl}/auth/send-otp');
+      final res = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'phone': phone}),
+      );
+
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() {
+          _otpSent = true;
+          _otpVerified = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP sent. Check your phone.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OTP send failed: ${res.body}')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP send error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _sendOtpLoading = false);
+      }
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    final email = _emailCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final code = _otpCtrl.text.trim();
+    if (email.isEmpty || phone.isEmpty || code.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter email, phone, and OTP code.')),
+      );
+      return;
+    }
+
+    setState(() => _verifyOtpLoading = true);
+
+    try {
+      final uri = Uri.parse('${AppConstants.apiBaseUrl}/auth/verify-otp');
+      final res = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'phone': phone, 'code': code}),
+      );
+
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() {
+          _otpVerified = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP verified successfully.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OTP verify failed: ${res.body}')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP verify error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _verifyOtpLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _phoneCtrl.dispose();
+    _otpCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,7 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 16),
 
                 // App name
-                Center(
+                const Center(
                   child: Text(
                     'BizDesk',
                     style: TextStyle(
@@ -125,13 +248,96 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Email',
                     hintText: 'name@company.com',
-                    prefixIcon: const Icon(Icons.mail_outline, size: 18),
+                    prefixIcon: Icon(Icons.mail_outline, size: 18),
                   ),
                   validator: (v) => v!.isEmpty ? 'Enter your email' : null,
+                  onChanged: (_) {
+                    if (_otpVerified) {
+                      setState(() => _otpVerified = false);
+                    }
+                  },
                 ),
+                const SizedBox(height: 14),
+
+                // Phone field (for OTP)
+                TextFormField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone',
+                    hintText: '+1234567890',
+                    prefixIcon: Icon(Icons.phone, size: 18),
+                  ),
+                  validator: (v) => v!.isEmpty ? 'Enter your phone number' : null,
+                  onChanged: (_) {
+                    if (_otpVerified) {
+                      setState(() => _otpVerified = false);
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _sendOtpLoading ? null : _sendOtp,
+                        child: _sendOtpLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text('Send OTP'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _verifyOtpLoading ? null : _verifyOtp,
+                        child: _verifyOtpLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text('Verify OTP'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_otpSent) ...[
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _otpCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'OTP Code',
+                      hintText: 'Enter 6-digit code',
+                      prefixIcon: Icon(Icons.lock_clock, size: 18),
+                    ),
+                    validator: (v) => _otpSent && v!.isEmpty ? 'Enter the OTP code' : null,
+                    onChanged: (_) {
+                      if (_otpVerified) {
+                        setState(() => _otpVerified = false);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (_otpSent)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10.0),
+                    child: Text(
+                      _otpVerified ? 'OTP verified ✔' : 'OTP sent — verify it before signing in',
+                      style: TextStyle(
+                        color: _otpVerified ? Colors.green : AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 14),
 
                 // Password field
@@ -239,11 +445,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _bar(double height, Color color) {
-    return Container(
-      width: 4,
-      height: height,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(1)),
-    );
-  }
 }
