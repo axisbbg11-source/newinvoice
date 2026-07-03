@@ -14,7 +14,7 @@ RUN apt-get update \
         libpango-1.0-0 \
         libpangocairo-1.0-0 \
         libpangoft2-1.0-0 \
-        libgdk-pixbuf2.0-0 \
+        libgdk-pixbuf-2.0-0 \
         libxrender1 \
         libxext6 \
         libfontconfig1 \
