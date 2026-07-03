@@ -1,9 +1,0 @@
-build:
-  language: python
-  buildCommand: |
-    python -m pip install --upgrade pip
-    pip install -r backend/requirements.txt
-  runCommand: ./start.sh
-
-start:
-  cmd: ./start.sh
