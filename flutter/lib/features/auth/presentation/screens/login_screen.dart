@@ -406,7 +406,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.g_mobiledata, size: 22, color: AppColors.textPrimary),
-                        label: const Text('Google'),
+                        label: const Text('Google', overflow: TextOverflow.ellipsis),
                       ),
                     ),
                     const SizedBox(width: 10),
