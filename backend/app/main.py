@@ -850,7 +850,7 @@ def normalize_phone_digits(phone: str) -> str:
 
 @app.post("/auth/send-otp")
 @rate_limit(10)
-async def send_otp(req: SendOTPRequest):
+async def send_otp(req: SendOTPRequest, request: Request):
     """Send a 6-digit OTP to the provided phone using Twilio Messaging API.
     Note: This implementation stores OTPs in-memory (ephemeral)."""
     try:
@@ -903,7 +903,7 @@ async def send_otp(req: SendOTPRequest):
 
 @app.post("/auth/verify-otp")
 @rate_limit(10)
-async def verify_otp(req: VerifyOTPRequest):
+async def verify_otp(req: VerifyOTPRequest, request: Request):
     try:
         phone = validate_phone(req.phone)
     except ValueError as e:
